@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#EF9F27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StarWars">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Marathon Star Wars</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --bg2: #1a1a1a;
+    --bg3: #242424;
+    --border: #2e2e2e;
+    --text: #f0f0f0;
+    --text2: #999;
+    --text3: #555;
+    --gold: #EF9F27;
+    --gold2: #FAC775;
+    --gold-dark: #BA7517;
+    --gold-bg: #2a1f08;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  /* LAYOUT */
+  #app { display: flex; flex-direction: column; height: 100%; max-width: 480px; margin: 0 auto; }
+  #header { padding: env(safe-area-inset-top, 12px) 16px 0; padding-top: max(env(safe-area-inset-top), 12px); }
+  #content { flex: 1; overflow-y: auto; padding: 0 16px 16px; -webkit-overflow-scrolling: touch; }
+  #navbar { display: flex; background: var(--bg2); border-top: 0.5px solid var(--border); padding-bottom: env(safe-area-inset-bottom, 0); flex-shrink: 0; }
+
+  /* HEADER */
+  .header-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 10px; }
+  .header-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .header-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .progress-bar-outer { height: 4px; background: var(--bg3); border-radius: 99px; overflow: hidden; margin-bottom: 12px; }
+  .progress-bar-inner { height: 100%; background: var(--gold); border-radius: 99px; transition: width 0.4s; }
+
+  /* NAV */
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 0; border: none; background: transparent; color: var(--text3); cursor: pointer; font-size: 10px; transition: color 0.15s; }
+  .nav-btn.active { color: var(--gold); }
+  .nav-icon { font-size: 20px; line-height: 1; }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat-card { background: var(--bg2); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; border: 0.5px solid var(--border); }
+  .stat-val { font-size: 20px; font-weight: 600; color: var(--text); }
+  .stat-lbl { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+  /* NOW CARD */
+  .now-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; }
+  .now-phase { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); margin-bottom: 8px; }
+  .phase-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .now-title { font-size: 18px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 10px; }
+  .now-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 500; }
+  .badge-film { background: #0d1f33; color: #6aaee8; }
+  .badge-serie { background: #18123a; color: #9d8ef5; }
+  .badge-court { background: #0d2010; color: #72c257; }
+  .badge-imp { background: var(--gold-bg); color: var(--gold); }
+  .validate-btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; background: var(--gold); color: #1a0e00; border: none; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s; }
+  .validate-btn:active { background: var(--gold2); }
+
+  /* NEXT PREVIEW */
+  .next-preview { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .next-lbl { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+  .next-title { font-size: 13px; color: var(--text); }
+
+  /* RATING */
+  .rating-panel { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; }
+  .rating-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .rating-sub { font-size: 13px; color: var(--text2); margin-bottom: 18px; line-height: 1.4; }
+  .criteria-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+  .criterion-row { display: flex; align-items: center; gap: 8px; }
+  .criterion-name { font-size: 13px; color: var(--text); flex: 1; }
+  .criterion-stars { display: flex; gap: 5px; }
+  .star-btn { width: 34px; height: 34px; border: 0.5px solid var(--border); border-radius: 7px; background: var(--bg3); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.12s; color: var(--text3); }
+  .star-btn.lit { background: var(--gold-bg); border-color: var(--gold-dark); color: var(--gold); }
+  .divider { height: 0.5px; background: var(--border); margin: 0 0 14px; }
+  .global-row { display: flex; align-items: center; margin-bottom: 16px; }
+  .global-lbl { font-size: 13px; color: var(--text2); flex: 1; }
+  .global-val { font-size: 24px; font-weight: 700; color: var(--gold); }
+  .global-unit { font-size: 13px; color: var(--text2); margin-left: 3px; }
+  .confirm-btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 600; background: var(--gold); color: #1a0e00; border: none; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s; }
+  .confirm-btn:disabled { opacity: 0.35; cursor: default; }
+  .confirm-btn:not(:disabled):active { background: var(--gold2); }
+  .skip-btn { width: 100%; padding: 11px; font-size: 13px; background: transparent; color: var(--text2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; margin-top: 8px; }
+  .skip-btn:active { background: var(--bg3); }
+
+  /* LIST */
+  .phase-block { margin-bottom: 10px; }
+  .phase-header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); margin-bottom: 2px; }
+  .phase-title-txt { font-size: 12px; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: 0.04em; }
+  .item-row { display: flex; align-items: center; gap: 9px; padding: 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.1s; }
+  .item-row:active { background: var(--bg3); }
+  .item-row.checked .item-label { color: var(--text3); text-decoration: line-through; }
+  .checkbox { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+  .checkbox.done { background: var(--gold); border-color: var(--gold-dark); }
+  .checkbox svg { display: none; }
+  .checkbox.done svg { display: block; }
+  .item-label { font-size: 13px; color: var(--text); flex: 1; line-height: 1.35; }
+  .item-score { font-size: 12px; color: var(--gold-dark); font-weight: 600; flex-shrink: 0; }
+
+  /* RANK */
+  .ranking-section { margin-bottom: 20px; }
+  .ranking-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .rank-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 4px; background: var(--bg2); border: 0.5px solid var(--border); }
+  .rank-label { font-size: 13px; color: var(--text); flex: 1; line-height: 1.3; }
+  .rank-score { font-size: 13px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+  .rank-stars { font-size: 11px; color: var(--gold-dark); flex-shrink: 0; letter-spacing: 1px; }
+  .empty-rank { font-size: 13px; color: var(--text3); padding: 24px; text-align: center; background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); line-height: 1.6; }
+
+  /* DONE */
+  .done-card { text-align: center; padding: 40px 20px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); }
+  .done-icon { font-size: 48px; margin-bottom: 14px; }
+  .done-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .done-sub { font-size: 14px; color: var(--text2); }
+
+  /* SCROLLBAR */
+  #content::-webkit-scrollbar { width: 3px; }
+  #content::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 99px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div class="header-row">
+      <div>
+        <div class="header-title">Marathon Star Wars</div>
+        <div class="header-sub" id="header-sub">Chargement…</div>
+      </div>
+      <div style="font-size:13px;color:var(--text2)" id="header-pct">0%</div>
+    </div>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="pbar" style="width:0%"></div></div>
+  </div>
+  <div id="content">
+    <div id="view-now" class="view active"></div>
+    <div id="view-list" class="view"></div>
+    <div id="view-rank" class="view"></div>
+  </div>
+  <nav id="navbar">
+    <button class="nav-btn active" id="tab-now" onclick="switchTab('now')">
+      <span class="nav-icon">▶</span><span>En cours</span>
+    </button>
+    <button class="nav-btn" id="tab-list" onclick="switchTab('list')">
+      <span class="nav-icon">≡</span><span>Liste</span>
+    </button>
+    <button class="nav-btn" id="tab-rank" onclick="switchTab('rank')">
+      <span class="nav-icon">🏆</span><span>Classement</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+const CRITERIA = ["Scénario","Personnages","Musique","Mise en scène","Émotion"];
+const DATA = [
+  {phase:1,phaseTitle:"Phase 1 — La découverte",color:"#378ADD",items:[
+    {id:"ep4",label:"Episode IV – A New Hope",type:"film",important:true},
+    {id:"ep5",label:"Episode V – The Empire Strikes Back",type:"film",important:true},
+    {id:"ep6",label:"Episode VI – Return of the Jedi",type:"film",important:true},
+  ]},
+  {phase:2,phaseTitle:"Phase 2 — La chute d'Anakin",color:"#D85A30",items:[
+    {id:"ep1",label:"Episode I – The Phantom Menace",type:"film"},
+    {id:"ep2",label:"Episode II – Attack of the Clones",type:"film"},
+  ]},
+  {phase:"clonewars",phaseTitle:"Clone Wars",color:"#D85A30",sub:true,items:[
+    {id:"cw0",label:"The Clone Wars (film)",type:"film"},
+    {id:"cw1",label:"The Clone Wars — Saison 1",type:"serie"},
+    {id:"cw2",label:"The Clone Wars — Saison 2",type:"serie"},
+    {id:"cw3",label:"The Clone Wars — Saison 3",type:"serie"},
+    {id:"cw4",label:"The Clone Wars — Saison 4",type:"serie"},
+    {id:"cw5",label:"The Clone Wars — Saison 5",type:"serie"},
+    {id:"cw6",label:"The Clone Wars — Saison 6",type:"serie"},
+    {id:"cw7",label:"The Clone Wars — Saison 7",type:"serie",important:true},
+    {id:"ep3",label:"Episode III – Revenge of the Sith",type:"film",important:true},
+  ]},
+  {phase:3,phaseTitle:"Phase 3 — L'Empire galactique",color:"#533AB7",items:[
+    {id:"toj",label:"Tales of the Jedi",type:"court"},
+    {id:"bb1",label:"The Bad Batch — Saison 1",type:"serie"},
+    {id:"bb2",label:"The Bad Batch — Saison 2",type:"serie"},
+    {id:"bb3",label:"The Bad Batch — Saison 3",type:"serie"},
+  ]},
+  {phase:"maul",phaseTitle:"Arc Maul / pègre",color:"#533AB7",sub:true,items:[
+    {id:"maul",label:"Maul – Shadow Lord",type:"serie"},
+    {id:"solo",label:"Solo: A Star Wars Story",type:"film"},
+  ]},
+  {phase:"obiwan",phaseTitle:"Obi-Wan",color:"#533AB7",sub:true,items:[
+    {id:"obi",label:"Obi-Wan Kenobi",type:"serie",important:true},
+  ]},
+  {phase:4,phaseTitle:"Phase 4 — La Rébellion",color:"#1D9E75",items:[
+    {id:"and1",label:"Andor — Saison 1",type:"serie"},
+    {id:"and2",label:"Andor — Saison 2",type:"serie"},
+  ]},
+  {phase:"rebels",phaseTitle:"Rebels",color:"#1D9E75",sub:true,items:[
+    {id:"reb1",label:"Rebels — Saison 1",type:"serie"},
+    {id:"reb2",label:"Rebels — Saison 2",type:"serie"},
+    {id:"reb3",label:"Rebels — Saison 3",type:"serie"},
+    {id:"reb4",label:"Rebels — Saison 4",type:"serie",important:true},
+    {id:"r1",label:"Rogue One: A Star Wars Story",type:"film",important:true},
+  ]},
+  {phase:5,phaseTitle:"Phase 5 — Après l'Empire",color:"#BA7517",items:[
+    {id:"mando1",label:"The Mandalorian — Saison 1",type:"serie"},
+    {id:"mando2",label:"The Mandalorian — Saison 2",type:"serie"},
+  ]},
+  {phase:"boba",phaseTitle:"Boba Fett",color:"#BA7517",sub:true,items:[
+    {id:"bobaf",label:"The Book of Boba Fett",type:"serie"},
+  ]},
+  {phase:"mando3",phaseTitle:"Retour Mandalorian",color:"#BA7517",sub:true,items:[
+    {id:"mando3",label:"The Mandalorian — Saison 3",type:"serie"},
+  ]},
+  {phase:"ahsoka",phaseTitle:"Ahsoka",color:"#BA7517",sub:true,items:[
+    {id:"ahsoka",label:"Ahsoka",type:"serie",important:true},
+  ]},
+  {phase:6,phaseTitle:"Phase 6 — Compléments",color:"#888780",items:[
+    {id:"tote",label:"Tales of the Empire",type:"court"},
+    {id:"visions",label:"Visions (hors canon)",type:"court"},
+  ]},
+  {phase:7,phaseTitle:"Phase 7 — La postlogie",color:"#D4537E",items:[
+    {id:"ep7",label:"Episode VII – The Force Awakens",type:"film"},
+    {id:"ep8",label:"Episode VIII – The Last Jedi",type:"film"},
+    {id:"ep9",label:"Episode IX – The Rise of Skywalker",type:"film"},
+  ]},
+];
+
+const ALL = DATA.flatMap(p => p.items);
+const TOTAL = ALL.length;
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem('sw_pwa') || '{}');
+    if (!s.checked) s.checked = {};
+    if (!s.ratings) s.ratings = {};
+    s.checked['maul'] = true;
+    return s;
+  } catch { return {checked:{maul:true},ratings:{}}; }
+}
+function save() { try { localStorage.setItem('sw_pwa', JSON.stringify(STATE)); } catch {} }
+
+let STATE = load();
+let pendingItem = null;
+let draftScores = {};
+
+function getNext() { return ALL.find(i => !STATE.checked[i.id]); }
+function getPhaseOf(item) { return DATA.find(p => p.items.some(i => i.id === item.id)); }
+function watched() { return ALL.filter(i => STATE.checked[i.id]).length; }
+function streak() { let s=0; for(const i of ALL){if(STATE.checked[i.id])s++;else break;} return s; }
+function globalScore(r) { const v=Object.values(r); return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10 : null; }
+function starsStr(s) { if(!s)return''; const f=Math.round(s); return'★'.repeat(f)+'☆'.repeat(5-f); }
+function hexRgba(hex,a) { const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return`rgba(${r},${g},${b},${a})`; }
+
+function badgeEl(type) {
+  const m={film:['badge-film','Film'],serie:['badge-serie','Série'],court:['badge-court','Court']};
+  const [c,l]=m[type]||['badge-film',''];
+  const s=document.createElement('span');
+  s.className='badge '+c; s.textContent=l; return s;
+}
+
+function updateHeader() {
+  const w=watched(), pct=Math.round(w/TOTAL*100);
+  const next=getNext();
+  document.getElementById('pbar').style.width=pct+'%';
+  document.getElementById('header-pct').textContent=pct+'%';
+  document.getElementById('header-sub').textContent = next ? 'Prochain : '+next.label : '🎉 Marathon terminé !';
+}
+
+function setStar(crit, val) { draftScores[crit]=val; renderNow(); }
+function validate() { const n=getNext(); if(!n)return; pendingItem=n; draftScores={}; renderNow(); }
+function confirmRating() {
+  if(!pendingItem)return;
+  STATE.checked[pendingItem.id]=true;
+  STATE.ratings[pendingItem.id]=Object.assign({},draftScores);
+  pendingItem=null; draftScores={};
+  save(); renderAll();
+}
+function skipRating() {
+  if(!pendingItem)return;
+  STATE.checked[pendingItem.id]=true;
+  pendingItem=null; draftScores={};
+  save(); renderAll();
+}
+function toggleItem(id) {
+  STATE.checked[id]=!STATE.checked[id];
+  if(!STATE.checked[id])delete STATE.ratings[id];
+  save(); renderAll();
+}
+function resetAll() {
+  if(confirm('Réinitialiser toute la progression ?')){
+    STATE={checked:{maul:true},ratings:{}}; pendingItem=null; draftScores={};
+    save(); renderAll();
+  }
+}
+
+function switchTab(tab) {
+  ['now','list','rank'].forEach(t=>{
+    document.getElementById('view-'+t).classList.toggle('active',t===tab);
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+  });
+}
+
+function mk(tag,cls='',text='') {
+  const el=document.createElement(tag);
+  if(cls)el.className=cls;
+  if(text)el.textContent=text;
+  return el;
+}
+
+function renderNow() {
+  const el=document.getElementById('view-now');
+  el.innerHTML='';
+  const w=watched(), pct=Math.round(w/TOTAL*100);
+
+  const stats=mk('div','stats-grid');
+  [['Visionné',w],['Restant',TOTAL-w],['Streak 🔥',streak()],['Avancement',pct+'%']].forEach(([l,v])=>{
+    const c=mk('div','stat-card');
+    c.innerHTML=`<div class="stat-val">${v}</div><div class="stat-lbl">${l}</div>`;
+    stats.appendChild(c);
+  });
+  el.appendChild(stats);
+
+  if(pendingItem) {
+    const panel=mk('div','rating-panel');
+    panel.appendChild(mk('div','rating-title','Note ton expérience'));
+    panel.appendChild(mk('div','rating-sub',pendingItem.label));
+    const list=mk('div','criteria-list');
+    CRITERIA.forEach(crit=>{
+      const row=mk('div','criterion-row');
+      row.appendChild(mk('span','criterion-name',crit));
+      const stars=mk('div','criterion-stars');
+      for(let i=1;i<=5;i++){
+        const btn=mk('button','star-btn'+(i<=(draftScores[crit]||0)?' lit':''));
+        btn.textContent=i<=(draftScores[crit]||0)?'★':'☆';
+        const c2=crit,v=i;
+        btn.addEventListener('click',e=>{e.stopPropagation();setStar(c2,v);});
+        stars.appendChild(btn);
+      }
+      row.appendChild(stars);
+      list.appendChild(row);
+    });
+    panel.appendChild(list);
+    panel.appendChild(mk('div','divider'));
+    const allFilled=CRITERIA.every(c=>draftScores[c]);
+    const avg=allFilled?Math.round(CRITERIA.reduce((s,c)=>s+draftScores[c],0)/CRITERIA.length*10)/10:null;
+    const gr=mk('div','global-row');
+    gr.innerHTML=`<span class="global-lbl">Note globale</span>${avg?`<span class="global-val">${avg}</span><span class="global-unit">/ 5</span>`:'<span style="font-size:14px;color:var(--text3)">— / 5</span>'}`;
+    panel.appendChild(gr);
+    const cb=mk('button','confirm-btn','Valider la note ✓');
+    cb.disabled=!allFilled;
+    cb.addEventListener('click',confirmRating);
+    panel.appendChild(cb);
+    const sb=mk('button','skip-btn','Passer sans noter');
+    sb.addEventListener('click',skipRating);
+    panel.appendChild(sb);
+    el.appendChild(panel);
+  } else {
+    const next=getNext();
+    if(!next){
+      const d=mk('div','done-card');
+      d.innerHTML='<div class="done-icon">🏆</div><div class="done-title">Marathon terminé !</div><div class="done-sub">Que la Force soit avec toi.</div>';
+      el.appendChild(d);
+    } else {
+      const phase=getPhaseOf(next);
+      const card=mk('div','now-card');
+      const ph=mk('div','now-phase');
+      ph.innerHTML=`<div class="phase-dot" style="background:${phase.color}"></div><span>${phase.phaseTitle}</span>`;
+      card.appendChild(ph);
+      card.appendChild(mk('div','now-title',next.label));
+      const meta=mk('div','now-meta');
+      meta.appendChild(badgeEl(next.type));
+      if(next.important){const imp=mk('span','badge badge-imp','★ À ne pas rater');meta.appendChild(imp);}
+      card.appendChild(meta);
+      const vb=mk('button','validate-btn','✓  Je l\'ai vu !');
+      vb.addEventListener('click',validate);
+      card.appendChild(vb);
+      el.appendChild(card);
+      const ni=ALL.indexOf(next), after=ALL[ni+1];
+      if(after){
+        const np=mk('div','next-preview');
+        const txt=mk('div','');
+        txt.style.flex='1';
+        txt.innerHTML=`<div class="next-lbl">Prochain</div><div class="next-title">${after.label}</div>`;
+        np.appendChild(txt);
+        np.appendChild(badgeEl(after.type));
+        el.appendChild(np);
+      }
+    }
+  }
+  const reset=mk('button','skip-btn','⟳ Réinitialiser la progression');
+  reset.style.marginTop='8px';
+  reset.addEventListener('click',resetAll);
+  el.appendChild(reset);
+}
+
+function renderList() {
+  const el=document.getElementById('view-list');
+  el.innerHTML='';
+  for(const phase of DATA){
+    const block=mk('div','phase-block');
+    const header=mk('div','phase-header');
+    header.style.background=phase.sub?'transparent':hexRgba(phase.color,0.12);
+    header.innerHTML=`<div class="phase-dot" style="background:${phase.color}"></div><span class="phase-title-txt">${phase.phaseTitle}</span>`;
+    block.appendChild(header);
+    for(const item of phase.items){
+      const done=!!STATE.checked[item.id];
+      const r=STATE.ratings[item.id];
+      const score=r?globalScore(r):null;
+      const row=mk('div','item-row'+(done?' checked':''));
+      row.setAttribute('role','checkbox');
+      row.setAttribute('aria-checked',done?'true':'false');
+      const cb=mk('div','checkbox'+(done?' done':''));
+      cb.innerHTML='<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3 5.5L8 1" stroke="#1a0e00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      row.appendChild(cb);
+      row.appendChild(mk('span','item-label',item.label));
+      if(score!==null)row.appendChild(mk('span','item-score',score+'/5'));
+      if(item.important&&!done){const s=mk('span','','★');s.style.cssText='color:var(--gold);font-size:13px;flex-shrink:0';row.appendChild(s);}
+      row.appendChild(badgeEl(item.type));
+      const id=item.id;
+      row.addEventListener('click',()=>toggleItem(id));
+      block.appendChild(row);
+    }
+    el.appendChild(block);
+  }
+}
+
+function renderRank() {
+  const el=document.getElementById('view-rank');
+  el.innerHTML='';
+  const rated=ALL.filter(i=>STATE.ratings[i.id]&&Object.keys(STATE.ratings[i.id]).length>0);
+  rated.sort((a,b)=>globalScore(STATE.ratings[b.id])-globalScore(STATE.ratings[a.id]));
+  if(!rated.length){
+    el.appendChild(mk('div','empty-rank','Aucune note encore.\n\nValide des œuvres pour voir ton classement !'));
+    return;
+  }
+  const sec=mk('div','ranking-section');
+  const t=mk('div','ranking-title',`Classement — ${rated.length} œuvre${rated.length>1?'s':''} notée${rated.length>1?'s':''}`);
+  sec.appendChild(t);
+  const medals=['🥇','🥈','🥉'];
+  rated.forEach((item,i)=>{
+    const score=globalScore(STATE.ratings[item.id]);
+    const row=mk('div','rank-row');
+    row.innerHTML=`<span style="font-size:18px;flex-shrink:0">${medals[i]||'#'+(i+1)}</span><span class="rank-label">${item.label}</span><span class="rank-stars">${starsStr(score)}</span><span class="rank-score">${score}/5</span>`;
+    sec.appendChild(row);
+  });
+  el.appendChild(sec);
+  if(rated.length>=2){
+    const sec2=mk('div','ranking-section');
+    sec2.appendChild(mk('div','ranking-title','Meilleur par critère'));
+    CRITERIA.forEach(crit=>{
+      const best=rated.reduce((b,i)=>{const s=STATE.ratings[i.id][crit]||0;return s>(STATE.ratings[b.id][crit]||0)?i:b;},rated[0]);
+      const bs=STATE.ratings[best.id][crit]||0;
+      if(bs>0){
+        const row=mk('div','rank-row');
+        row.innerHTML=`<span style="font-size:13px;color:var(--text2);flex:0 0 110px">${crit}</span><span class="rank-label">${best.label}</span><span class="rank-stars">${'★'.repeat(bs)}</span>`;
+        sec2.appendChild(row);
+      }
+    });
+    el.appendChild(sec2);
+  }
+}
+
+function renderAll(){updateHeader();renderNow();renderList();renderRank();}
+
+if(!STATE.ratings['maul']||Object.keys(STATE.ratings['maul']).length===0){
+  pendingItem=ALL.find(i=>i.id==='maul');
+  draftScores={};
+}
+
+renderAll();
+
+// Register Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
